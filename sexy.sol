@@ -9,9 +9,10 @@ import "https://github.com/econarchist/project_sexy-/Advanced.sol";
 contract Econarchy is owned, TokenERC20, Advanced {
     
     struct Position {
-        string ticker;
-        string direction;
+        uint token_price;
+        uint asset_price;
         uint volume;
+        string direction;
         uint time;
     }
     
@@ -19,19 +20,12 @@ contract Econarchy is owned, TokenERC20, Advanced {
     mapping(string => Position) public positions;
     
     //This is another mapping that will match each player to his/her mapping of positions 
-    mapping(adress => mapping(string => Position)) public accounts;
-    
-    
-    
-    
-    //Each player may have an array of positions 
-    //mapping(address => Position[]) public positions;
-    
-    //Each position has corresponding ticker (defined as mapping for computational efficiencty)
-    //mapping(string => mapping(address => Position[])) public ticker;
+    mapping(address => mapping(string => Position)) public accounts;
     
     //Each bet is an event on the blockchain
-    event Bet(address _player, string _ticker, string _direction, uint _volume, uint _time );
+    event EnterContract(address _player, string _ticker, string _direction, uint _volume, uint _time );
+    event PartialExecution(address _player, string _ticker, string _direction, uint _volume, uint _time );
+    event FullExecution(address _player, string _ticker, string _direction, uint _time );
     
     //Constructor
     function Econarchy(
@@ -47,52 +41,54 @@ contract Econarchy is owned, TokenERC20, Advanced {
     /// @param _volume kek
     function OpenLong(string _ticker, uint _volume) onlyOwner {
         
-        //Quote asset price and token price (express in big numbers tho)
+        //Quote current asset price and token price (express in big numbers tho)
         uint c;
         uint p;
         
         //Withdraw khi from balance
         balanceOf[msg.sender] -= c * _volume / p;
         
-        //New position expressed as struct
-        //Position new_position = Position(_ticker, 'BUY', _volume, now);
+        //Record this position to message sender's account
+        accounts[msg.sender][_ticker] = Position(c, p, _volume, "BUY", now);
         
-        //append new position to positions array
-        positions[msg.sender].push( Position(_ticker, 'BUY', _volume, now) );
-        
-        //put this event on the blockchain  
-        Bet(msg.sender, _ticker, 'BUY', _volume, now);
+        //Put this event on the blockchain  
+        EnterContract(msg.sender, _ticker, 'BUY', _volume, now);
         
     }
     
     /// @notice Closes long position for shadow asset `_ticker`. `_volume` can be less or equal 
     /// @param _ticker kek
     /// @param _volume kek
-    function CloseLong(string _ticker, uint _volume) {
+    function CloseLong(string _ticker, uint _volume) onlyOwner {
+        
+        //Quote current asset price and token price (express in big numbers tho)
+        uint c;
+        uint p;
         
         // require(_volume <= /*the other volume */);
-        //positions[msg.sender][_ticker].volume -= _volume;
         
-        //Player gets returns 
-        //balanceOf[msg.sender] -= c * _volume / p;
+        //Update volume in message sender's account
+        accounts[msg.sender][_ticker].volume -= _volume;
+        
+        //Delete position from message sender's account if it is executed in full ammount
+        if (accounts[msg.sender][_ticker].volume == 0){
+            delete accounts[msg.sender][_ticker];
+            
+            //Put this event on the blockchain
+            FullExecution(msg.sender, _ticker, "BUY", now);
+        } else { //If position is only partly executed put `PartialExecution` events on the blockchain
+            PartialExecution(msg.sender, _ticker, "BUY", _volume, now);
+        }
+        
+        //Player gets returns to his balance
+        balanceOf[msg.sender] -= c * _volume / p;
         
     }
     
     
     function OpenShort(string _ticker, uint _volume) {
                 
-        //Quote asset price and token price (express in big numbers tho)
-        uint c;
-        uint p;
-        
-        //Withdraw khi from balance
-        balanceOf[msg.sender] -= c * _volume / p;
-        
-        //Push new position to positions array
-        positions[msg.sender].push( Position(_ticker, 'SELL', _volume, now) );
-        
-        //Put this event on the blockchain  
-        Bet(msg.sender, _ticker, 'SELL', _volume, now);
+     
         
     }
 
@@ -101,4 +97,3 @@ contract Econarchy is owned, TokenERC20, Advanced {
         
     
 }
-    
