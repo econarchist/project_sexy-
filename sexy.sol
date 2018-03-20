@@ -3,8 +3,25 @@ pragma solidity^0.4.16;
 import "https://github.com/econarchist/project_sexy-/Advanced.sol";
 
 
+
+
+
 contract Econarchy is owned, TokenERC20, Advanced {
     
+    struct Position {
+        string ticker;
+        string direction;
+        uint volume;
+        uint time;
+    }
+    
+    //Each player may have an array of positions 
+    mapping(address => Position[]) public positions;
+    
+    //Each bet is an event on the blockchain
+    event Bet(address _player, string _ticker, string _direction, uint _volume, uint _time );
+    
+    //Constructor
     function Econarchy(
     uint256 initialSupply,
     string tokenName,
@@ -13,57 +30,64 @@ contract Econarchy is owned, TokenERC20, Advanced {
         
     
     
-    /// @notice This function opens long position for player
-    /// @param ticker Ticker of an asset
-    /// @param volume Position volume 
-    
-    function OpenLong(string ticker, uint volume) {}
-    
-    function CloseLong() {}
-    pragma solidity^0.4.16;
-
-import "https://github.com/econarchist/project_sexy-/Advanced.sol";
-
-
-contract Econarchy is owned, TokenERC20, Advanced {
-    
-    //array of positions of message sender 
-    
-    //mapping of this array to adress 
-    
-    //events
-    
-    
-    function Econarchy(
-    uint256 initialSupply,
-    string tokenName,
-    string tokenSymbol
-    ) TokenERC20(initialSupply, tokenName, tokenSymbol) public {}
+    /// @notice Opens long position for shadow asset `_ticker` of size `_volume`
+    /// @param _ticker kek
+    /// @param _volume kek
+    function OpenLong(string _ticker, uint _volume) onlyOwner {
         
-    
-    
-    /// @notice Allow users to buy tokens for `newBuyPrice` eth and sell tokens for `newSellPrice` eth
-    /// @param newSellPrice Price the users can sell to the contract
-    /// @param newBuyPrice Price users can buy from the contract
-    
-    function OpenLong(string ticker, uint volume) onlyOwner {
-        //withdraw khi from balance
-        balanceOf[msg.sender] -= c * volume / p;
+        //Quote asset price and token price (express in big numbers tho)
+        uint c;
+        uint p;
+        
+        //Withdraw khi from balance
+        balanceOf[msg.sender] -= c * _volume / p;
+        
+        //New position expressed as struct
+        //Position new_position = Position(_ticker, 'BUY', _volume, now);
+        
         //append new position to positions array
+        positions[msg.sender].push( Position(_ticker, 'BUY', _volume, now) );
         
         //put this event on the blockchain  
-        
-        
-        
+        Bet(msg.sender, _ticker, 'BUY', _volume, now);
         
     }
     
-    function CloseLong(string ticker, uint volume) {}
+    /// @notice Closes long position for shadow asset `_ticker`. `_volume` can be less or equal 
+    /// @param _ticker kek
+    /// @param _volume kek
+    function CloseLong(string _ticker, uint _volume) {
+        
+        // require(_volume <= /*the other volume */);
+        //positions[msg.sender][_ticker].volume -= _volume;
+        
+        //Player gets returns 
+        //balanceOf[msg.sender] -= c * _volume / p;
+        
+    }
     
-    function OpenShort(string ticker, uint volume) {}
+    
+    function OpenShort(string _ticker, uint _volume) {
+                
+        //Quote asset price and token price (express in big numbers tho)
+        uint c;
+        uint p;
+        
+        //Withdraw khi from balance
+        balanceOf[msg.sender] -= c * _volume / p;
+        
+        //Push new position to positions array
+        positions[msg.sender].push( Position(_ticker, 'SELL', _volume, now) );
+        
+        //put this event on the blockchain  
+        Bet(msg.sender, _ticker, 'SELL', _volume, now);
+        
+    }
+    
     
     function CloseShort(string ticker, uint volume) {}
         
     
+}
     
     
