@@ -15,8 +15,20 @@ contract Econarchy is owned, TokenERC20, Advanced {
         uint time;
     }
     
+    //Each player can have a number of positions in different shadow assets. This is a mapping from ticker to Position(dir, vol,price, time)
+    mapping(string => Position) public positions;
+    
+    //This is another mapping that will match each player to his/her mapping of positions 
+    mapping(adress => mapping(string => Position)) public accounts;
+    
+    
+    
+    
     //Each player may have an array of positions 
-    mapping(address => Position[]) public positions;
+    //mapping(address => Position[]) public positions;
+    
+    //Each position has corresponding ticker (defined as mapping for computational efficiencty)
+    //mapping(string => mapping(address => Position[])) public ticker;
     
     //Each bet is an event on the blockchain
     event Bet(address _player, string _ticker, string _direction, uint _volume, uint _time );
@@ -79,15 +91,14 @@ contract Econarchy is owned, TokenERC20, Advanced {
         //Push new position to positions array
         positions[msg.sender].push( Position(_ticker, 'SELL', _volume, now) );
         
-        //put this event on the blockchain  
+        //Put this event on the blockchain  
         Bet(msg.sender, _ticker, 'SELL', _volume, now);
         
     }
-    
+
     
     function CloseShort(string ticker, uint volume) {}
         
     
 }
-    
     
