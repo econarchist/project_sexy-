@@ -72,7 +72,7 @@ contract TokenERC20 {
         balanceOf[_from] -= _value;
         // Add the same to the recipient
         balanceOf[_to] += _value;
-        Transfer(_from, _to, _value);
+        emit Transfer(_from, _to, _value);
         // Asserts are used to use static analysis to find bugs in your code. They should never fail
         assert(balanceOf[_from] + balanceOf[_to] == previousBalances);
     }
@@ -150,7 +150,7 @@ contract TokenERC20 {
         require(balanceOf[msg.sender] >= _value);   // Check if the sender has enough
         balanceOf[msg.sender] -= _value;            // Subtract from the sender
         totalSupply -= _value;                      // Updates totalSupply
-        Burn(msg.sender, _value);
+        emit Burn(msg.sender, _value);
         return true;
     }
 
@@ -168,7 +168,7 @@ contract TokenERC20 {
         balanceOf[_from] -= _value;                         // Subtract from the targeted balance
         allowance[_from][msg.sender] -= _value;             // Subtract from the sender's allowance
         totalSupply -= _value;                              // Update totalSupply
-        Burn(_from, _value);
+        emit Burn(_from, _value);
         return true;
     }
 }
@@ -199,7 +199,7 @@ contract Advanced is owned, TokenERC20 {
         require(!frozenAccount[_to]);                       // Check if recipient is frozen
         balanceOf[_from] -= _value;                         // Subtract from the sender
         balanceOf[_to] += _value;                           // Add the same to the recipient
-        Transfer(_from, _to, _value);
+        emit Transfer(_from, _to, _value);
     }
 
     /// @notice Create `mintedAmount` tokens and send it to `target`
@@ -208,8 +208,8 @@ contract Advanced is owned, TokenERC20 {
     function mintToken(address target, uint256 mintedAmount) onlyOwner public {
         balanceOf[target] += mintedAmount;
         totalSupply += mintedAmount;
-        Transfer(0, this, mintedAmount);
-        Transfer(this, target, mintedAmount);
+        emit Transfer(0, this, mintedAmount);
+        emit Transfer(this, target, mintedAmount);
     }
 
     /// @notice `freeze? Prevent | Allow` `target` from sending & receiving tokens
@@ -217,7 +217,7 @@ contract Advanced is owned, TokenERC20 {
     /// @param freeze either to freeze it or not
     function freezeAccount(address target, bool freeze) onlyOwner public {
         frozenAccount[target] = freeze;
-        FrozenFunds(target, freeze);
+        emit FrozenFunds(target, freeze);
     }
 
     /// @notice Allow users to buy tokens for `newBuyPrice` eth and sell tokens for `newSellPrice` eth
@@ -353,55 +353,60 @@ contract Econarchy is Advanced, UsingFunctions{
     
     
     /// @notice Opens long position for shadow asset `_ticker` of size `_volume`
-    /// @param _ticker kek
-    /// @param _volume kek
-    /// @param _p kek
-    /// @param _c kek
+    /// @param ticker kek
+    /// @param volume kek
+    /// @param assetPrice kek
+    /// @param tokenPrice kek
     function OpenLong(
-        string _ticker, 
-        string _volume, 
-        string _p, 
-        string _c) 
+        string ticker, 
+        string volume, 
+        string assetPrice, 
+        string tokenPrice) 
         public 
         onlyOwner {
-        uint v = stringToUint(_volume);
+        uint volumeUint = stringToUint(volume);
         //Quote current asset price and token price (express in big numbers tho)
         
-        uint tokenFlows = tokenFlow(_c, _p, v);         //calculate cost of buying in token terms
+        uint tokenFlows = tokenFlow(tokenPrice, assetPrice, volumeUint);         //calculate cost of buying in token terms
         require(balanceOf[msg.sender] >= tokenFlows);   //check if there is enough funds to buy
         balanceOf[msg.sender] -= tokenFlows;            //Withdraw khi(wei) from message sender's balance
-        accounts[msg.sender][true][_ticker] = Position(v, "BUY", tokenFlows, now); //Record this position to message sender's account
-        emit EnterContract(msg.sender, _ticker, "BUY", _volume, now);   //Put this event on the blockchain
+        
+        
+        //If already has position 
+        //else 
+        
+        accounts[msg.sender][true][ticker] = Position(volumeUint, "BUY", tokenFlows, now); //Record this position to message sender's account
+        emit EnterContract(msg.sender, ticker, "BUY", volume, now);   //Put this event on the blockchain
     }
     
     
     
     /// @notice Closes long position for shadow asset `_ticker`. `_volume` can be less or equal 
-    /// @param _ticker kek
-    /// @param _volume kek
-    /// @param _p kek
-    /// @param _c kek
+    /// @param ticker kek
+    /// @param volume kek
+    /// @param assetPrice kek
+    /// @param tokenPrice kek
     function CloseLong(
-        string _ticker, 
-        string _volume, 
-        string _p, 
-        string _c) 
+        string ticker, 
+        string volume, 
+        string assetPrice, 
+        string tokenPrice) 
         public 
         onlyOwner {
-        uint v = stringToUint(_volume);
-        require(accounts[msg.sender][true][_ticker].volume >= v); ////////////////////must check for buy position 
+        uint volumeUint = stringToUint(volume);
+        require(accounts[msg.sender][true][ticker].volume >= volumeUint); ////////////////////must check for buy position 
         //Quote current asset price and token price (express in big numbers tho)
-        uint tokenFlows = tokenFlow(_c, _p, v);
-        uint executedBetTokens = v*accounts[msg.sender][true][_ticker].tokensBet/accounts[msg.sender][true][_ticker].volume;
+        uint tokenFlows = tokenFlow(tokenPrice, assetPrice, volumeUint);
+        uint executedBetTokens = volumeUint*accounts[msg.sender][true][ticker].tokensBet/accounts[msg.sender][true][ticker].volume;
         
-        if (accounts[msg.sender][true][_ticker].volume == v){   //If executed in full ammount
-            delete accounts[msg.sender][true][_ticker];         //Delete position from message sender's account
-            emit FullExecution(msg.sender, _ticker, "BUY", now); //Put this event on the blockchain
+        if (accounts[msg.sender][true][ticker].volume == volumeUint){   //If executed in full ammount
+            delete accounts[msg.sender][true][ticker];         //Delete position from message sender's account
+            emit FullExecution(msg.sender, ticker, "BUY", now); //Put this event on the blockchain
             
         } else { //If position is only partly executed 
-            accounts[msg.sender][true][_ticker].volume -= v; //Subtract executed volume from corresponding account
-            accounts[msg.sender][true][_ticker].tokensBet-=executedBetTokens; //Subtract executed tokens from tokens that were bet
-            emit PartialExecution(msg.sender, _ticker, "BUY", _volume, now); //put `PartialExecution` event on the blockchain
+            accounts[msg.sender][true][ticker].volume -= volumeUint; //Subtract executed volume from corresponding account
+            accounts[msg.sender][true][ticker].tokensBet-=executedBetTokens; //Subtract executed tokens from tokens that were bet
+            emit PartialExecution(msg.sender, ticker, "BUY", volume, now); //put `PartialExecution` event on the blockchain
         }
         
         balanceOf[msg.sender] += tokenFlows; //Player gets returns to the balance
@@ -414,16 +419,5 @@ contract Econarchy is Advanced, UsingFunctions{
         
         
     }
-    
-    
-    function OpenShort(string _ticker, uint _volume) {
-                
-     
-        
-    }
-
-    
-    function CloseShort(string ticker, uint volume) {}
-        
     
 }
