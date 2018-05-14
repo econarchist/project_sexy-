@@ -309,7 +309,7 @@ contract UsingFunctions{
 
 
 
-
+
 
 contract Econarchy is Advanced, UsingFunctions{
     
@@ -318,20 +318,17 @@ contract Econarchy is Advanced, UsingFunctions{
         string direction;
         uint tokensBet;
         uint time;
+        bool initialized;
     }
     
-    //Each player can have a number of positions in different shadow assets. This is a mapping from ticker string to Position(dir, vol, tokensBet, time) struct.
-    //mapping(string => Position) positions;
-    
-    //This is another mapping that will match each player to his/her mapping of positions 
-    //mapping(address => mapping(string => Position)) accounts;
+   // mapping(string => Position) positions;
+  //  mapping(bool => mapping(string => Position)) directions; //True for Long positions, False for shorts(this is to save memory, OK ????)
     
     
     
     
        //Each player can have a number of positions in different shadow assets. This is a mapping from ticker string to Position(dir, vol, tokensBet, time) struct.
-   // mapping(string => Position) positions;
-  //  mapping(bool => mapping(string => Position)) directions; //True for Long positions, False for shorts(this is to save memory, OK ????)
+
     mapping(address => mapping(bool => mapping(string => Position)) ) accounts;
     //      account ------>BUY or SELL----------------->Position
 
@@ -372,10 +369,14 @@ contract Econarchy is Advanced, UsingFunctions{
         balanceOf[msg.sender] -= tokenFlows;            //Withdraw khi(wei) from message sender's balance
         
         
-        //If already has position 
-        //else 
         
-        accounts[msg.sender][true][ticker] = Position(volumeUint, "BUY", tokenFlows, now); //Record this position to message sender's account
+        if(accounts[msg.sender][true][ticker].initialized == false){ //If there's no position yet 
+            accounts[msg.sender][true][ticker] = Position(volumeUint, "BUY", tokenFlows, now, true); //Record this position to message sender's account
+        } else {      //If already has position 
+            accounts[msg.sender][true][ticker].volume+=volumeUint;
+            accounts[msg.sender][true][ticker].tokensBet+= tokenFlows;
+        }
+        
         emit EnterContract(msg.sender, ticker, "BUY", volume, now);   //Put this event on the blockchain
     }
     
